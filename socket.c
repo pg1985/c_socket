@@ -76,6 +76,9 @@ void doProcessing(int sock)
 	int req, output;
 	char buffer[256];
 	bzero(buffer, 256);
+	char message[1024], response[4096];
+	bzero(message,1024);
+	bzero(response, 4096);
 
 
 	req = read(sock, buffer, 255);
