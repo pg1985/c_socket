@@ -22,7 +22,7 @@ int main(int argc, char * argv[])
 	}
 
 	bzero((char *) &server_address, sizeof(server_address));
-	portno = 5001;
+	portno = 5150;
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr = INADDR_ANY;
@@ -90,7 +90,7 @@ void doProcessing(int sock)
 	}
 
 	printf("Message: %s\n", buffer);
-	output = write(sock, "<p>hai</p>", 10);
+	output = write(sock, "<p>O Hai Mike</p>", 17);
 
 	if(output < 0)
 	{
