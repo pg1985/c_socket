@@ -6,6 +6,9 @@
 
 void doProcessing(int sock);
 
+char * opening_tag = "<p>";
+char * closing_tag = "</p>";
+
 int main(int argc, char * argv[])
 {
 	int sockfd, newsockfd, portno, clilen;
@@ -22,7 +25,7 @@ int main(int argc, char * argv[])
 	}
 
 	bzero((char *) &server_address, sizeof(server_address));
-	portno = 5150;
+	portno = 5001;
 
 	server_address.sin_family = AF_INET;
 	server_address.sin_addr.s_addr = INADDR_ANY;
@@ -76,12 +79,11 @@ void doProcessing(int sock)
 	int req, output;
 	char buffer[256];
 	bzero(buffer, 256);
-	char message[1024], response[4096];
+	char message[1024];
 	bzero(message,1024);
-	bzero(response, 4096);
 
 
-	req = read(sock, buffer, 255);
+	req = read(sock, buffer, 1024);
 
 	if(req < 0)
 	{
@@ -90,7 +92,20 @@ void doProcessing(int sock)
 	}
 
 	printf("Message: %s\n", buffer);
-	output = write(sock, "<p>O Hai Mike</p>", 17);
+	char * method = strstr(buffer, "GET");
+	printf("req: %d\n", req);
+
+	printf("Request Method: %s\n", method);
+
+	char * response = malloc(strlen(method) + 1024); //
+
+	strcpy(response, opening_tag);
+	strcat(response, method);
+	strcat(response, closing_tag);
+
+	output = write(sock, response, 1024);
+
+	free(response);
 
 	if(output < 0)
 	{
