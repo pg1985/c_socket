@@ -3,8 +3,15 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
+#include <regex.h>
 
 void doProcessing(int sock);
+
+regex_t regex;
+int reti;
+
+//ghetto way of forcing synchronicity
+int busy;
 
 char * opening_tag = "<p>";
 char * closing_tag = "</p>";
@@ -15,6 +22,13 @@ int main(int argc, char * argv[])
 	char buffer[256];
 	struct sockaddr_in server_address, client_address;
 	int result, pid; //replaces 'n' in code, jackass C programmers
+
+	//look for BYTE strings.
+	reti = regcomp(&regex, "(\/0x)\w+", 0);
+	if (reti) {
+	    fprintf(stderr, "Could not compile regex\n");
+	    exit(1);
+	}
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -43,32 +57,37 @@ int main(int argc, char * argv[])
 	while(1)
 	{
 
-		newsockfd = accept(sockfd, (struct sockaddr *) &client_address, &clilen);
-
-		if (newsockfd < 0)
+		if(!busy) 
 		{
-			perror("Error on Accepting again");
-			exit(1);
+			newsockfd = accept(sockfd, (struct sockaddr *) &client_address, &clilen);
+
+			if (newsockfd < 0)
+			{
+				perror("Error on Accepting again");
+				exit(1);
+			}
+
+			pid = fork(); //linux system call to fork a new process.
+
+			if (pid < 0)
+			{
+				perror("Error forking process");
+				exit(1);
+			}
+
+			if(pid == 0)  //client process
+			{
+				close(sockfd);
+				doProcessing(newsockfd);
+				exit(0);
+			}
+			else
+			{
+				close(newsockfd);
+			}
 		}
 
-		pid = fork(); //linux system call to fork a new process.
-
-		if (pid < 0)
-		{
-			perror("Error forking process");
-			exit(1);
-		}
-
-		if(pid == 0)  //client process
-		{
-			close(sockfd);
-			doProcessing(newsockfd);
-			exit(0);
-		}
-		else
-		{
-			close(newsockfd);
-		}
+		
 	}
 
 	return 0;
@@ -81,6 +100,8 @@ void doProcessing(int sock)
 	bzero(buffer, 256);
 	char message[1024];
 	bzero(message,1024);
+
+	busy = 1;
 
 
 	req = read(sock, buffer, 1024);
@@ -95,7 +116,9 @@ void doProcessing(int sock)
 	char * method = strstr(buffer, "GET");
 	printf("req: %d\n", req);
 
-	printf("Request Method: %s\n", method);
+	reti = regexec(&regex, buffer)
+
+	printf("Request Regex Result: %s\n", reti);
 
 	char * response = malloc(strlen(method) + 1024); //
 
@@ -106,6 +129,7 @@ void doProcessing(int sock)
 	output = write(sock, response, 1024);
 
 	free(response);
+	busy = 0;
 
 	if(output < 0)
 	{
